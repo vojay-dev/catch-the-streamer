@@ -3,8 +3,6 @@ extends Node
 
 signal received_chat_message(user, message)
 
-const CHUNK_BUFFER = 8
-
 export(String) var twitch_host = "irc.chat.twitch.tv"
 export(int) var twitch_port = 6667
 export(int, 3, 30) var connection_timeout_sec = 10
@@ -105,25 +103,26 @@ func _handle_ping(_input):
 	message_queue.append("PONG :tmi.twitch.tv")
 
 func _handle_chat(input):
-	# See: https://tools.ietf.org/html/rfc1459#section-2.3.1
+	# :nickname!user@host PRIVMSG destination :message
+	# see: https://tools.ietf.org/html/rfc1459#section-2.3.1
 	var components = input.split(" ")
 
-	# Example: :vojay!vojay@vojay.tmi.twitch.tv
-	var user_host = components[0].split('!')
-	if not user_host.size() == 2:
+	# example prefix: :vojay!vojay@vojay.tmi.twitch.tv
+	var prefix = components[0].split('!')
+	if not prefix.size() == 2:
 		return
 
-	var user = user_host[1].split('@')[0]
+	var user = prefix[1].split('@')[0]
 
-	# Reconstruct message
+	# reconstruct message
 	var message = ""
 	for i in range(3, components.size()):
 		message += "%s " % components[i]
 
-	# Remove last space (" ") at the end
+	# remove last space (" ") at the end
 	message.erase(0, 1)
 
-	# Remove colon (:) at the beginning
+	# remove colon (:) at the beginning
 	message.erase(message.length() - 1, 1)
 
 	emit_signal("received_chat_message", user, message)
